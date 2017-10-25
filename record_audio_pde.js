@@ -13,10 +13,12 @@ var input;
 var analyzer;
 var SoundData = [];
 var currentLocation;
-var recording = null;
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
+  
+  //
+  rectMode(RADIUS)
 
   // Create an Audio input
   mic = new p5.AudioIn();
@@ -26,19 +28,10 @@ function setup() {
   mic.start();
   analyzer = new p5.FFT();
   analyzer.setInput(mic);
-  
-  // Start Geolocation Watch
-  var watchID = navigator.geolocation.watchPosition(function(position) {
-    currentLocation = position;
-  }, function() {}, { enableHighAccuracy: true, });
-  
-  button = createButton('Start Recording');
-  button.position(windowWidth/2, windowHeight*.9);
-  button.mousePressed(toggleRec);
 }
 
 function draw() {
-  background(200);
+  background(0);
 
   // Get the overall volume (between 0 and 1.0)
   var vol = mic.getLevel();
@@ -49,13 +42,22 @@ function draw() {
   stroke(0);
 
   // Draw an ellipse with height based on volume
-  var h = map(vol, 0, 1, height, 0);
-  ellipse(width/2, h - 25, 50, 50);
+  var h = map(vol, 0, 1, height, 0);  
+  //ellipse(width/2, height/2, h, h)
   
-  beginShape();
-   for (i = 0; i<spectrum.length; i++) {
-    vertex(i, map(spectrum[i], 0, 255, height, 0) );
-   }
+  translate(width/2, height/2)
+  for (i = 0; i < spectrum.length; i++) {
+    rotate(TWO_PI/spectrum.length);
+    colorMode(HSB);
+    //noStroke();
+    var c = color(map(i, 0, spectrum.length, 50, 255), 255, 255);
+    fill(c);
+    stroke(255);
+    line(75, 75, map(spectrum[i], 0, spectrum.length, 100, 255), map(spectrum[i], 0, spectrum.length, 100, 255))
+    noStroke();
+    ellipse(map(spectrum[i], 0, spectrum.length, 0, 255) + 150, 0, 5, 5);
+    //vertex(i, map(spectrum[i], 0, 255, height, 0) );
+  }
   
   // Now we want to save this data to a json file
   // We can do the by saving the data to localstorage 
@@ -63,21 +65,5 @@ function draw() {
   if (recording) {
     SoundData.push({ volume: vol, spectrum: spectrum, timestamp: new Date().toISOString(), geolocation: currentLocation })
     console.log(SoundData);
-  }
-}
-
-function toggleRec() {
-  if (recording === null) {
-    recording = true;
-    button.html("Stop Recording")
-  } else {
-    if (recording) {
-      recording = false;
-      saveJSON(SoundData, "atelier-data");
-    } else {
-      button.html("Start Recording")
-      recording = true;
-      //navigator.geolocation.clearWatch(watchID);
-    }
   }
 }
