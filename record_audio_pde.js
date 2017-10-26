@@ -15,7 +15,11 @@ var SoundData = [];
 var currentLocation;
 var recording = null;
 var amplitude;
-var locationData, locationDataIndex = 0, mySound, position;
+var locationData, 
+    locationDataIndex = 0, 
+    mySound, 
+    locationPosition = { x: 100, y: 200 },
+    locationRotation = [0, 0, 0]
 
 function preload() {
   soundFormats('mp3');
@@ -34,7 +38,7 @@ function setup() {
   amplitude = new p5.Amplitude();
 
   // start the Audio Input.
-  mySound.setVolume(0.1);
+  mySound.setVolume(0.18);
   mySound.play();
   
   // By default, it does not .connect() (to the computer speakers)
@@ -42,32 +46,11 @@ function setup() {
   analyzer = new p5.FFT();
   analyzer.setInput(mySound);
   amplitude.setInput(mySound);
-  
-  
-  position = { x: 100, y: 200 };
-  //locationDataIndex = 0
-  //setInterval(function() {
-  //  push();
-  //  translate(-width/2, -height/2);
-  //  fill(0);
-  //  ellipse(position.x, position.y, 10, 10);
-  //  if (locationDataIndex < locationData.data.length) {
-  //    if (locationData.data[locationDataIndex].sensor_name === "LGE Linear Acceleration Sensor") {
-  //      position.x -= locationData.data[locationDataIndex].value[0] * 10;
-  //      position.y -= locationData.data[locationDataIndex].value[1] * 10;
-  //    }
-  //  }
-  //  locationDataIndex++;
-  //  pop();
-  //}, 100);
-  
 }
 
 function draw() {
-  background(255, 0.1);
+  background(255, 0.09);
 
-  // Get the overall volume (between 0 and 1.0)
-  //var vol = mic.getLevel();
   var level = amplitude.getLevel();
   var size = map(level, 0, 1, 0, 200);
   var spectrum = analyzer.analyze();
@@ -77,76 +60,40 @@ function draw() {
   spectrum.length = 512;
   fill(127);
   stroke(0);
-
-  // Draw an ellipse with height based on volume
-  //var h = map(vol, 0, 1, height, 0);  
   
   translate(width/2, height/2);
     
   for (i = 0; i < spectrum.length; i++) {
+    // evenly distribute specturm in a circle
     rotate(TWO_PI/spectrum.length);
     
-    // Set color Ranges
+    // Set color Value
     colorMode(HSB);
     noStroke();
     var c = color(map(i, 0, spectrum.length, 0, 360), 100, 100);
     fill(c);
-    
+
+    // Circlular Lines 1
     push();
-   
-    pop();
-    // Circlular Lines 3
-    push();
-    
-    //rotate(PI);
-    //fill(255,0.4);
     stroke(c);
     strokeWeight(1);
     line( size + 50, 0,  size + spectrum[i] + 50, 0);
     //ellipse( 50, 0, map(spectrum[i], 0, 255, 0, 500) + 50, 0);
     pop();
 
-    //blendMode(SCREEN);
-    // Points are plotted on circles from center outward
+    // Circles are plotted on line caps from center outward
     push();
-    //rotate(-PI/2);
-    // Circle 1
-    //stroke(0);
+    // Circle 2
     ellipse(map(spectrum[i], 0, 255, 0, 255) + 100, 0, 5, 5);
     pop();
-    //blendMode(MULTIPLY);
-    // Cicle 2
-    push();
-    noStroke();
-    fill(c);
-   
-    //ellipse(map(spectrum[i], 0, 255, 0, 255) + 150, 0, 5, 5);
-    pop();
-          
-    //vertex(i, map(spectrum[i], 0, 255, height, 0) );
-    // console.log(size);
   }
-  
-  //push();
-  //rotate(frameCount/80)
-  //// Hex Mask
-  //var hexSize = size + 75;
-  //fill(255);
-  //noStroke();
-  //beginShape();
-  //vertex(hexSize * cos(0), hexSize * sin(0));
-  //for (var side = 0; side < 7; side++) {
-  //  vertex(hexSize * cos(side * 2 * PI / 6), hexSize * sin(side * 2 * PI / 6));
-  //}
-  //endShape();
-  //pop();
    
   for (i = 0; i< waveform.length; i++){
+    // evenly distribute waveform values in a circle
     rotate(TWO_PI/waveform.length);
-  // Set color Ranges
-    colorMode(HSB);
+    
+    // Set color Ranges
     noStroke();
-    var c = color(map(i, 0, waveform.length, 0, 360), 100, 100);
     fill(0);
 
     push();
@@ -155,15 +102,32 @@ function draw() {
     pop();
   }
   
-  fill(0);
-  ellipse(position.x, position.y, 10, 10);
+  push()
+  //blendMode(SCREEN)
+  // invert color
+  //c.levels[0] = abs(255 - c.levels[0]);
+  //c.levels[1] = abs(255 - c.levels[1]);
+  //c.levels[2] = abs(255 - c.levels[2]);
+  // console.log(c);
+  fill(0, 0.75);
+  ellipse(locationPosition.x, locationPosition.y, 50, 50);
   if (locationDataIndex < locationData.data.length) {
-    if (locationData.data[locationDataIndex].sensor_name === "LGE Linear Acceleration Sensor") {
-      position.x -= locationData.data[locationDataIndex].value[0] * 10;
-      position.y -= locationData.data[locationDataIndex].value[1] * 10;
+    switch(locationData.data[locationDataIndex].sensor_name) {
+      case "LGE Linear Acceleration Sensor":
+        locationPosition.x -= locationData.data[locationDataIndex].value[0] * 20;
+        locationPosition.y -= locationData.data[locationDataIndex].value[1] * 20;
+        break;
+      case "LGE Magnetometer":
+        locationRotation = abs(locationRotation[0]) - locationData.data[locationDataIndex].value[0];
+        rotate(locationRotation[0]);
+        break;
+      case "LG Motion Accel":
+        break;
     }
   }
   locationDataIndex++;
+  blendMode(BLEND)
+  pop();
 }
 
 function windowResized() {
